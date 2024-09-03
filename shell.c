@@ -51,6 +51,29 @@ void execute_commands(char **parsed_str){
 
 }
 
+int execute_inside_commands(char **instructions, int counter){
+    if(strcmp(instructions[0], "exit") == 0){
+        exit(0);
+
+    } else if (strcmp(instructions[0], "cd") == 0){
+        chdir(instructions[1]);
+        return 1;
+
+    } 
+    
+    for(int i = 0; i < counter; i++){
+            //printf("%s ", parsed_str[i]);
+
+        if (strcmp(instructions[i], "|") == 0){
+            printf("\n pipe inserted\n");
+            //run_pipe(parsed_str[i - 1], parsed_str[i + 1]); 
+            return 1;  
+        }
+    } 
+
+    return 0;
+}
+
 // funcion para manejar señales
 void sig_handler(int sig){
     if(sig = SIGINT){
@@ -62,7 +85,7 @@ void sig_handler(int sig){
 int main(int argc, char *argv[]) {
 
     signal(SIGINT, sig_handler); // rutina para control C
-    char *previous_command[5];
+    char* prev_command[5];
 
     while(1){
 
@@ -82,47 +105,40 @@ int main(int argc, char *argv[]) {
             
             parsed_str[counter] = token;
 
-            if(strcmp(parsed_str[0], "!!") == 0){ }// guardar commando para implementar el comando interno !!   
-            else {
-                previous_command[counter] = parsed_str[counter];
-            }
+            //if(strcmp(parsed_str[0], "!!") != 0){
+            //    prev_command[counter] = (char*)malloc(20);
+            //    strcpy(prev_command[counter], parsed_str[counter]);
+            //}
 
             token = strtok(NULL, " ");
             counter++;
         }
 
-        if (strcmp(parsed_str[0], "!!") == 0){
-            //make function
-
-            for(int l = 0; l < 5; l++){
-                printf("%s ", previous_command[0]);
-            }
-        } 
-        
         //identificar commandos internos
         int handled = 0; // variable para indicar si el comando ya fue manejado internamente 
-        if(strcmp(parsed_str[0], "exit") == 0){
-            exit(0);
 
-        } else if (strcmp(parsed_str[0], "cd") == 0){
-            chdir(parsed_str[1]);
-            handled = 1;
 
-        } 
-        
-        for(int i = 0; i < counter; i++){
-                //printf("%s ", parsed_str[i]);
+        if (strcmp(parsed_str[0], "!!") == 0){
+            //make function
+            for (int i = 0; i < 3; ++i){
+                /* code */
+                printf("%s ", prev_command[i]);
+            }  
 
-            if (strcmp(parsed_str[i], "|") == 0){
-                printf("\n pipe inserted\n");
-                //run_pipe(parsed_str[i - 1], parsed_str[i + 1]); 
-                handled = 1;  
+            handled = execute_inside_commands(prev_command, counter);
+
+            if(!handled){ // ejecutar comandos
+                execute_commands(parsed_str);
             }
-        } 
-       
-        if(!handled){ // ejecutar comandos
-            execute_commands(parsed_str);
+
+        } else {
+
+            handled = execute_inside_commands(parsed_str, counter);
+            if(!handled){ // ejecutar comandos
+                execute_commands(parsed_str);
+            }
         }
+        
 
         
         // limpiar buffer de entrada
@@ -133,6 +149,7 @@ int main(int argc, char *argv[]) {
         }
 
     }   
+   
     
     return 0;
 }

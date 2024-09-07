@@ -30,13 +30,13 @@ char favs_file[MAX_CMD_LEN] = "";               // Ruta del archivo de favoritos
 */
 void create_favs_file(const char *name, const char *path) {
     char full_path[MAX_CMD_LEN];
-    char name_buffer[MAX_CMD_LEN];    // Buffer temporal para manejar el nombre
+    char name_buffer[MAX_CMD_LEN];
 
     // Si no se proporciona nombre, usar "favs.txt"
     if (name == NULL || strlen(name) == 0) {
         strcpy(name_buffer, "favs.txt");
     } else {
-        strncpy(name_buffer, name, sizeof(name_buffer) - 5);    // Asegurarse de que hay espacio para ".txt"
+        strncpy(name_buffer, name, sizeof(name_buffer) - 5);
         strcat(name_buffer, ".txt");    // Añadir la extensión .txt
     }
 
@@ -98,18 +98,18 @@ void show_favorites() {
         printf("No hay comandos favoritos.\n");
         return;
     }
-    printf("--------------------------------------------------------\n");
+    printf("\n--------------------------------------------------------\n");
     printf("                   COMANDOS FAVORITOS                   \n");
     printf("--------------------------------------------------------\n");
     for (int i = 0; i < fav_count; ++i) {
         printf("%d: %s\n", favorites[i].id, favorites[i].command);
     }
-    printf("--------------------------------------------------------\n");
+    printf("--------------------------------------------------------\n\n");
 }
 
 /*
 ---------------------------------------------------------------------------
-                    Agregar un Comando a los Favoritos
+                Agregar Manualmente un Comando a los Favoritos
 ---------------------------------------------------------------------------
 */
 void add_favorite_manual(const char *cmd) {
@@ -128,6 +128,29 @@ void add_favorite_manual(const char *cmd) {
         printf("Comando agregado a favoritos: %s\n", cmd);
     } else {
         printf("Lista de favoritos llena.\n");
+    }
+}
+
+/*
+---------------------------------------------------------------------------
+                Agregar un Comando Ejecutado a los Favoritos
+---------------------------------------------------------------------------
+*/
+void add_executed_command_to_favorites(const char *cmd) {
+    // Verificar si el comando fue previamente eliminado
+    for (int i = 0; i < removed_count; ++i) {
+        if (strcmp(removed_cmds[i], cmd) == 0) {
+            printf("El comando '%s' fue eliminado previamente y no se agregará automáticamente.\n", cmd);
+            return;
+        }
+    }
+
+    // Verificar si el comando es válido (se ejecutó correctamente)
+    if (system(cmd) == 0) {           // Verifica si el comando se ejecuta con éxito
+        add_favorite_manual(cmd);     // Agregar el comando a la lista de favoritos
+        update_favs_file();           // Guardar la lista actualizada en el archivo
+    } else {
+        printf("El comando '%s' no es válido o no se pudo ejecutar.\n", cmd);
     }
 }
 
@@ -154,6 +177,30 @@ void delete_favorite(int id) {
         }
     }
     printf("Comando no encontrado.\n");
+}
+
+/*
+---------------------------------------------------------------------------
+                    Borrar Todos los Comando en Favs
+---------------------------------------------------------------------------
+*/
+void clear_favorites_with_confirmation() {
+    char confirmation;
+    printf("¿Estás seguro de que deseas borrar todos los favoritos? (Y/N): ");
+    scanf(" %c", &confirmation);
+
+    if (confirmation == 'Y' || confirmation == 'y') {
+        fav_count = 0;  // Limpiar la lista en memoria
+        FILE *file = fopen(favs_file, "w");  // Abrir el archivo y vaciarlo
+        if (file != NULL) {
+            fclose(file);
+            printf("Todos los favoritos han sido borrados y el archivo ha sido vaciado.\n");
+        } else {
+            perror("Error al vaciar el archivo de favoritos");
+        }
+    } else {
+        printf("Acción cancelada. Los favoritos no han sido borrados.\n");
+    }
 }
 
 /*
@@ -252,6 +299,8 @@ void handle_favs_command(const char *input) {
 
         sscanf(input, "favs cargar %s %s", name, path);  // Leer nombre y ruta opcionales
         load_favs_file((strlen(name) == 0) ? NULL : name, (strlen(path) == 0) ? NULL : path);
+    } else if (strcmp(input, "favs borrar") == 0) {
+        clear_favorites_with_confirmation();
     } else {
         printf("Comando desconocido.\n");
     }
@@ -264,12 +313,16 @@ void handle_favs_command(const char *input) {
 */
 int main() {
     // Simulación de entrada del usuario
-    handle_favs_command("favs agregar ls");
+    add_executed_command_to_favorites("ls");
     handle_favs_command("favs crear");
-    handle_favs_command("favs agregar pwd");
+    add_executed_command_to_favorites("pwd");
     handle_favs_command("favs agregar cd");
     handle_favs_command("favs mostrar");
     handle_favs_command("favs eliminar 1");
+    handle_favs_command("favs mostrar");
+    add_executed_command_to_favorites("ls");
+    handle_favs_command("favs mostrar");
+    handle_favs_command("favs borrar");
     handle_favs_command("favs mostrar");
     return 0;
 }

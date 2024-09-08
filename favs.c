@@ -124,7 +124,6 @@ void add_favorite_manual(const char *cmd) {
         strncpy(favorites[fav_count].command, cmd, MAX_CMD_LEN);
         favorites[fav_count].is_favorite = true;
         fav_count++;
-        update_favs_file();  // Sobrescribir archivo al agregar
         printf("Comando agregado a favoritos: %s\n", cmd);
     } else {
         printf("Lista de favoritos llena.\n");
@@ -148,7 +147,6 @@ void add_executed_command_to_favorites(const char *cmd) {
     // Verificar si el comando es válido (se ejecutó correctamente)
     if (system(cmd) == 0) {           // Verifica si el comando se ejecuta con éxito
         add_favorite_manual(cmd);     // Agregar el comando a la lista de favoritos
-        update_favs_file();           // Guardar la lista actualizada en el archivo
     } else {
         printf("El comando '%s' no es válido o no se pudo ejecutar.\n", cmd);
     }
@@ -171,7 +169,6 @@ void delete_favorite(int id) {
                 favorites[j] = favorites[j + 1];
             }
             fav_count--;
-            update_favs_file();  // Actualizar archivo
             printf("Comando eliminado de favoritos: %d\n", id);
             return;
         }
@@ -190,14 +187,8 @@ void clear_favorites_with_confirmation() {
     scanf(" %c", &confirmation);
 
     if (confirmation == 'Y' || confirmation == 'y') {
-        fav_count = 0;  // Limpiar la lista en memoria
-        FILE *file = fopen(favs_file, "w");  // Abrir el archivo y vaciarlo
-        if (file != NULL) {
-            fclose(file);
-            printf("Todos los favoritos han sido borrados y el archivo ha sido vaciado.\n");
-        } else {
-            perror("Error al vaciar el archivo de favoritos");
-        }
+        fav_count = 0;       // Limpiar la lista en memoria
+        printf("Todos los favoritos han sido borrados.\n");
     } else {
         printf("Acción cancelada. Los favoritos no han sido borrados.\n");
     }
@@ -305,6 +296,73 @@ void execute_favorite_by_number(int num) {
 
 /*
 ---------------------------------------------------------------------------
+                         Ayuda de Comandos favs
+---------------------------------------------------------------------------
+*/
+void show_favs_help() {
+    printf("\n===========================================================================\n");
+    printf("                        Ayuda de Comandos favs\n");
+    printf("===========================================================================\n");
+    
+    printf("\nfavs crear (nombre opcional) (ruta opcional):\n");
+    printf("  - Crea un archivo para almacenar la lista de comandos favoritos.\n");
+    printf("  - Si no se proporciona el nombre, se usará 'favs.txt'.\n");
+    printf("  - Si no se proporciona la ruta, se usará el directorio actual.\n");
+    
+    printf("\n---------------------------------------------------------------------------\n");
+
+    printf("favs cargar (nombre opcional) (ruta opcional):\n");
+    printf("  - Carga los comandos favoritos desde el archivo especificado.\n");
+    printf("  - El archivo debe tener formato .txt.\n");
+    printf("  - Si no se proporciona nombre, se usará 'favs.txt'.\n");
+    printf("  - Si no se proporciona ruta, se buscará en el directorio actual.\n");
+
+    printf("\n---------------------------------------------------------------------------\n");
+
+    printf("favs mostrar:\n");
+    printf("  - Muestra todos los comandos favoritos almacenados con su número asociado.\n");
+
+    printf("\n---------------------------------------------------------------------------\n");
+
+    printf("favs eliminar num1:\n");
+    printf("  - Elimina un comando favorito especificados por su número.\n");
+    printf("  - Nota: Los comandos eliminados ya no serán agregados automáticamente.\n");
+
+    printf("\n---------------------------------------------------------------------------\n");
+
+    printf("favs agregar (comando):\n");
+    printf("  - Agrega manualmente un comando a la lista de favoritos.\n");
+    printf("  - Ejemplo: 'favs agregar ls -la' añadirá el comando 'ls -la' como favorito.\n");
+
+    printf("\n---------------------------------------------------------------------------\n");
+
+    printf("favs buscar (substring):\n");
+    printf("  - Busca y muestra todos los comandos favoritos que contengan la subcadena dada.\n");
+    printf("  - Ejemplo: 'favs buscar ls' buscará todos los comandos que contengan 'ls'.\n");
+
+    printf("\n---------------------------------------------------------------------------\n");
+
+    printf("favs borrar:\n");
+    printf("  - Elimina toda la lista de comandos favoritos después de pedir confirmación.\n");
+
+    printf("\n---------------------------------------------------------------------------\n");
+
+    printf("favs (num) ejecutar:\n");
+    printf("  - Ejecuta el comando favorito especificado por su número en la lista.\n");
+    printf("  - Ejemplo: 'favs 2 ejecutar' ejecutará el segundo comando en la lista de favoritos.\n");
+
+    printf("\n---------------------------------------------------------------------------\n");
+
+    printf("favs guardar:\n");
+    printf("  - Guarda los comandos favoritos actuales en el archivo correspondiente.\n");
+
+    printf("\n===========================================================================\n");
+    printf(" Nota: Los parámetros entre paréntesis son opcionales.\n");
+    printf("===========================================================================\n");
+}
+
+/*
+---------------------------------------------------------------------------
                         Manejo de Comandos favs
 ---------------------------------------------------------------------------
 */
@@ -344,6 +402,10 @@ void handle_favs_command(const char *input) {
         int num;
         sscanf(input, "favs %d ejecutar", &num);
         execute_favorite_by_number(num);
+    } else if (strcmp(input, "favs guardar") == 0) {
+        update_favs_file();
+    } else if (strcmp(input, "favs help") == 0) {
+        show_favs_help();
     } else {
         printf("Comando desconocido.\n");
     }
@@ -355,41 +417,32 @@ void handle_favs_command(const char *input) {
 ---------------------------------------------------------------------------
 */
 int main() {
-    // Simulación de entrada del usuario
-    add_executed_command_to_favorites("ls");
-    handle_favs_command("favs crear");
-    add_executed_command_to_favorites("pwd sdfghdd");
-    handle_favs_command("favs agregar cd");
-    handle_favs_command("favs mostrar");
-    handle_favs_command("favs eliminar 1");
-    handle_favs_command("favs mostrar");
-    add_executed_command_to_favorites("ls");
-    handle_favs_command("favs mostrar");
-    handle_favs_command("favs buscar cd");
-    handle_favs_command("favs 1 ejecutar");
-    handle_favs_command("favs 2 ejecutar");
-    handle_favs_command("favs borrar");
-    handle_favs_command("favs mostrar");
-    handle_favs_command("favs buscar pwd");
-    handle_favs_command("favs buscar dfdgdhbdg");
+    char input[MAX_CMD_LEN];
+
+    printf("\n---------------------------------------------------------------------------\n");
+    printf("                         Pruebas de Comandos favs\n");
+    printf("---------------------------------------------------------------------------\n");
+    printf("Ingrese un comando (o 'exit' para salir):\n");
+
+    while (1) {
+        printf("> ");
+        // Lee la entrada del usuario (usamos fgets para capturar la línea completa)
+        if (fgets(input, sizeof(input), stdin) == NULL) {
+            break; // Si se alcanza el final de la entrada, salir
+        }
+
+        // Eliminar el salto de línea al final
+        input[strcspn(input, "\n")] = 0;
+
+        // Verificar si se quiere salir del programa
+        if (strcmp(input, "exit") == 0) {
+            printf("Saliendo...\n");
+            break;
+        }
+
+        // Llamar a la función que maneja los comandos
+        handle_favs_command(input);
+    }
+
     return 0;
 }
-
-/*
-    handle_favs_command("favs agregar ls");
-    handle_favs_command("favs crear");
-    handle_favs_command("favs agregar pwd");
-    handle_favs_command("favs agregar cd");
-    handle_favs_command("favs mostrar");
-    handle_favs_command("favs eliminar 1");
-    handle_favs_command("favs mostrar");
-    handle_favs_command("favs borrar");
-    handle_favs_command("favs 1 ejecutar");
-    add_executed_command_to_favorites("pwd");
-*/
-
-/*
-    handle_favs_command("favs agregar ls");
-    handle_favs_command("favs cargar");
-    handle_favs_command("favs mostrar");
-*/

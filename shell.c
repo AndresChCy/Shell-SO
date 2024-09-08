@@ -20,6 +20,7 @@ char** dividir_string(char *input, int *count){
         index++;
     }
 
+
     tokens[index] = NULL; 
     *count = index;
     return tokens;
@@ -99,6 +100,7 @@ int ejecutar_comandos_internos(char **instructions, int counter){
 
     } 
     
+
     for(int i = 0; i < counter; i++){
             //printf("%s ", parsed_str[i]);
 
@@ -113,9 +115,11 @@ int ejecutar_comandos_internos(char **instructions, int counter){
 }
 
 
+int pid;
+
 void ejecutar_comandos_externos(char **parsed_str){
 
-    int pid = fork();
+    pid = fork();
 
     if (pid < 0) { // fork fallo
         printf("fork fallo\n");
@@ -135,25 +139,22 @@ void ejecutar_comandos_externos(char **parsed_str){
 // funcion para manejar señales
 void sig_handler(int sig){
     if(sig = SIGINT){
-        exit(0);
+        kill(pid, SIGKILL);
     }
 }
 
-
-
 int main(int argc, char *argv[]) {
 
+    #define MAX_CHAR 256
     signal(SIGINT, sig_handler); // rutina para control C
-    char prev_command[256];
-    char input[256];
+    char prev_command[MAX_CHAR];
+    char input[MAX_CHAR];
     char s[100];
     int count; 
 
     system("clear");
 
     while(1){
-
-        
         printf("shell:~%s$ ", getcwd(s, 100)); // imprimir direccion de directorio
         fgets(input, 256, stdin);               // Leer el comando
         input[strcspn(input, "\n")] = 0;       // Eliminar el salto de linea
@@ -189,9 +190,10 @@ int main(int argc, char *argv[]) {
         }
         
 
-        memset(input, 0, sizeof(input));
         // Liberar la memoria tokens
         free(parsed_str);
+        memset(input, 0, sizeof(input));
+
 
         // limpiar buffer de entrada
         

@@ -6,8 +6,6 @@
 #include <signal.h>
 
 
-char *myargs[3];
-
 char** dividir_string(char *input, int *count){
 
     char **tokens = malloc(10 * sizeof(char*)); // alocar espacio para 10 punteros

@@ -28,9 +28,6 @@ void run_pipe(char arg1[], char arg2[]){  //
     }
 }
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 
 
 char**  dividir_string(char *input, int *count){
@@ -106,7 +103,7 @@ void sig_handler(int sig){
 int main(int argc, char *argv[]) {
 
     signal(SIGINT, sig_handler); // rutina para control C
-    //char* prev_command[5];
+    char* prev_command[5] = {0};
     char input[100];
     char s[100];
      int count; 
@@ -116,10 +113,10 @@ int main(int argc, char *argv[]) {
 
         printf("shell:~%s$ ", getcwd(s, 100)); // imprimir direccion de directorio
         fgets(input, 100, stdin);               // Leer el comando
-        input[strcspn(input, "\n")] = 0       // Eliminar el salto de línea
+        input[strcspn(input, "\n")] = 0;       // Eliminar el salto de línea
 
 
-        char **parsed_str = split_string(input, &count); 
+        char **parsed_str = dividir_string(input, &count); 
          if (parsed_str[0] == NULL) {
             continue;
         }
@@ -151,8 +148,9 @@ int main(int argc, char *argv[]) {
                 /* code */
                 printf("%s ", prev_command[i]);
             }  
+            printf("\n");
 
-            handled = execute_inside_commands(prev_command, counter);
+            handled = execute_inside_commands(prev_command, count);
 
             if(!handled){ // ejecutar comandos
                 execute_commands(parsed_str);
@@ -160,7 +158,7 @@ int main(int argc, char *argv[]) {
 
         } else {
 
-            handled = execute_inside_commands(parsed_str, counter);
+            handled = execute_inside_commands(parsed_str, count);
             if(!handled){ // ejecutar comandos
                 execute_commands(parsed_str);
             }

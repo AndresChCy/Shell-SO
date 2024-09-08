@@ -6,7 +6,6 @@
 #include <signal.h>
 
 
-
 char** dividir_string(char *input, int *count){
 
     char **tokens = malloc(10 * sizeof(char*)); // alocar espacio para 10 punteros
@@ -101,7 +100,7 @@ int ejecutar_comandos_internos(char **instructions, int counter){
 
     } 
     
-    
+
     for(int i = 0; i < counter; i++){
             //printf("%s ", parsed_str[i]);
 
@@ -114,6 +113,7 @@ int ejecutar_comandos_internos(char **instructions, int counter){
 
     return 0;
 }
+
 
 int pid;
 
@@ -136,8 +136,6 @@ void ejecutar_comandos_externos(char **parsed_str){
 
 }
 
-
-
 // funcion para manejar señales
 void sig_handler(int sig){
     if(sig = SIGINT){
@@ -157,10 +155,8 @@ int main(int argc, char *argv[]) {
     system("clear");
 
     while(1){
-
-        
         printf("shell:~%s$ ", getcwd(s, 100)); // imprimir direccion de directorio
-        scanf("%[^\n]s", input);                // Leer el comando
+        fgets(input, 256, stdin);               // Leer el comando
         input[strcspn(input, "\n")] = 0;       // Eliminar el salto de linea
 
         char **parsed_str;
@@ -198,12 +194,13 @@ int main(int argc, char *argv[]) {
         free(parsed_str);
         memset(input, 0, sizeof(input));
 
+
         // limpiar buffer de entrada
         
         char ch[1];
         while(1){
             ch[0] = fgetc(stdin);
-            if(ch[0] == '\n' || ch[0] == EOF || ch[0] == 0) break;
+            if(ch[0] == '\n' || ch[0] == EOF) break;
         }
     }   
    

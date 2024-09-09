@@ -5,24 +5,33 @@
 #include <sys/wait.h>
 #include <signal.h>
 
+static int numPipes = 0;
+char*** dividir_string(char *input){
 
-char** dividir_string(char *input, int *count){
-
-    char **tokens = malloc(10 * sizeof(char*)); // alocar espacio para 10 punteros
+    char ***tokens = malloc( 20*sizeof(char**)); // alocar espacio para 10 punteros
     char *token;
     int index = 0;
-
+    for (int i = 0; i < 20; i++){
+        tokens[i] = malloc(sizeof (char*) * 20);
+        // Cada elemento apunta a NULL inicialmente 
+        //for (int j = 0; j < 20; j++)
+          //  tokens[i][j] = NULL;
+    }
     token = strtok(input, " ");
     while (token != NULL ){
-
-        tokens[index] = token;
+        if(strcmp(token,"|") == 0){
+            numPipes++;
+            token = strtok(NULL, " ");
+            index = 0;
+            continue;
+        }
+        tokens[numPipes][index] = token; 
         token = strtok(NULL, " ");
         index++;
     }
 
 
-    tokens[index] = NULL; 
-    *count = index;
+    tokens[numPipes+1][index] = NULL; 
     return tokens;
 }
 
@@ -34,8 +43,7 @@ char** dividir_string(char *input, int *count){
  * char**** args: Matriz de strings para separar cada palabra de un comando y separar cada comando por pipes de la entrada
  */
 
-void pipes(int cantPipes, const char **args[]) {
-    printf("hola\n");
+void pipes(int cantPipes, const char ***args) {
     int status;
     int i;
 
@@ -47,7 +55,6 @@ void pipes(int cantPipes, const char **args[]) {
     }
     // Primer proceso para servir de escritura para el siguiente proceso
     if (fork() == 0) {
-        printf("a1\n");
         dup2(pipes[1], 1);
         // Se cierran los demás espacios del pipe ya que no se usan
         for (i = 0; i < cantPipes * 2; i++) {
@@ -59,7 +66,6 @@ void pipes(int cantPipes, const char **args[]) {
     // Un for para los demás procesos que serán lecturas y escrituras
     for (i = 0; i < cantPipes - 1; i++) {
         if (fork() == 0) {
-            printf("a2\n");
             dup2(pipes[i * 2], 0);
             dup2(pipes[(i * 2) + 3], 1);
             for (int j = 0; j < cantPipes * 2; j++) {
@@ -71,7 +77,6 @@ void pipes(int cantPipes, const char **args[]) {
     }
     // Fork para el último proceso del comando y que lea la última escritura
     if (fork() == 0) {
-        printf("a3\n");
         dup2(pipes[cantPipes * 2 - 2], 0);
         for (i = 0; i < cantPipes * 2; i++) {
             close(pipes[i]);
@@ -101,7 +106,7 @@ int ejecutar_comandos_internos(char **instructions, int counter){
     } 
     
 
-    for(int i = 0; i < counter; i++){
+   /* for(int i = 0; i < counter; i++){
             //printf("%s ", parsed_str[i]);
 
         if (strcmp(instructions[i], "|") == 0){
@@ -109,7 +114,7 @@ int ejecutar_comandos_internos(char **instructions, int counter){
             //run_pipe(parsed_str[i - 1], parsed_str[i + 1]); 
             return 1;  
         }
-    } 
+    } */
 
     return 0;
 }
@@ -150,48 +155,44 @@ int main(int argc, char *argv[]) {
     char prev_command[MAX_CHAR];
     char input[MAX_CHAR];
     char s[100];
-    int count; 
+    int count=1; 
 
     system("clear");
 
     while(1){
         printf("shell:~%s$ ", getcwd(s, 100)); // imprimir direccion de directorio
-        fgets(input, 256, stdin);               // Leer el comando
-        input[strcspn(input, "\n")] = 0;       // Eliminar el salto de linea
-
-        char **parsed_str;
-
+        //fgets(input, 256, stdin);               // Leer el comando
+        //input[strcspn(input, "\n")] = 0;       // Eliminar el salto de linea
+        scanf("%[^\n]s", input);
+        char ***parsed_str;
         // comprobar si el comando es !!
         if((input[0] == 33) && (input[1] == 33)){
 
-            parsed_str = dividir_string(prev_command, &count); 
+            parsed_str = dividir_string(prev_command); 
             if (parsed_str[0] == NULL) {
                 continue;
             }
 
         } else {
-
             strcpy(prev_command, input);
-            parsed_str = dividir_string(input, &count); 
+            parsed_str = dividir_string(input); 
             if (parsed_str[0] == NULL) {
                 continue;
             }
         }
-
             
-    
-        
         //identificar commandos internos
         int handled = 0; // variable para indicar si el comando ya fue manejado internamente 
 
-        handled = ejecutar_comandos_internos(parsed_str, count);
+        handled = ejecutar_comandos_internos(*parsed_str, count);
         if(!handled){ // ejecutar comandos
-            ejecutar_comandos_externos(parsed_str);
+            if(numPipes == 0) ejecutar_comandos_externos(*parsed_str);
+            else pipes(numPipes,(const char***)parsed_str);
         }
         
 
         // Liberar la memoria tokens
-        free(parsed_str);
+        //free(parsed_str);
         memset(input, 0, sizeof(input));
 
 
@@ -202,6 +203,7 @@ int main(int argc, char *argv[]) {
             ch[0] = fgetc(stdin);
             if(ch[0] == '\n' || ch[0] == EOF) break;
         }
+        numPipes = 0;
     }   
    
     

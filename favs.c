@@ -269,6 +269,42 @@ void load_favs_file(const char *name, const char *path) {
 
 /*
 ---------------------------------------------------------------------------
+                        Búsqueda por SubString
+---------------------------------------------------------------------------
+*/
+void search_favorites_by_substring(const char *substring) {
+    int found = 0;
+    for (int i = 0; i < fav_count; ++i) {
+        if (strstr(favorites[i].command, substring) != NULL) {
+            printf("%d: %s\n", favorites[i].id, favorites[i].command);
+            found = 1;
+        }
+    }
+    if (!found) {
+        printf("No se encontraron coincidencias con '%s'.\n", substring);
+    }
+}
+
+/*
+---------------------------------------------------------------------------
+                        Ejecutar Comando Favorito
+---------------------------------------------------------------------------
+*/
+void execute_favorite_by_number(int num) {
+    for (int i = 0; i < fav_count; ++i) {
+        if (favorites[i].id == num) {
+            printf("Ejecutando: %s\n", favorites[i].command);
+            // ***************************************************
+            // Aquí se llama a la función para ejecutar el comando
+            // ***************************************************
+            return;
+        }
+    }
+    printf("No se encontró un comando con el número %d.\n", num);
+}
+
+/*
+---------------------------------------------------------------------------
                         Manejo de Comandos favs
 ---------------------------------------------------------------------------
 */
@@ -296,11 +332,18 @@ void handle_favs_command(const char *input) {
     } else if (strncmp(input, "favs cargar", 11) == 0) {
         char name[MAX_CMD_LEN] = "";
         char path[MAX_CMD_LEN] = "";
-
         sscanf(input, "favs cargar %s %s", name, path);  // Leer nombre y ruta opcionales
         load_favs_file((strlen(name) == 0) ? NULL : name, (strlen(path) == 0) ? NULL : path);
     } else if (strcmp(input, "favs borrar") == 0) {
         clear_favorites_with_confirmation();
+    } else if (strncmp(input, "favs buscar", 11) == 0) {
+        char cmd[MAX_CMD_LEN];
+        sscanf(input, "favs buscar %s", cmd);
+        search_favorites_by_substring(cmd);
+    } else if (strncmp(input, "favs", 4) == 0 && strstr(input, "ejecutar") != NULL) {
+        int num;
+        sscanf(input, "favs %d ejecutar", &num);
+        execute_favorite_by_number(num);
     } else {
         printf("Comando desconocido.\n");
     }
@@ -315,15 +358,20 @@ int main() {
     // Simulación de entrada del usuario
     add_executed_command_to_favorites("ls");
     handle_favs_command("favs crear");
-    add_executed_command_to_favorites("pwd");
+    add_executed_command_to_favorites("pwd sdfghdd");
     handle_favs_command("favs agregar cd");
     handle_favs_command("favs mostrar");
     handle_favs_command("favs eliminar 1");
     handle_favs_command("favs mostrar");
     add_executed_command_to_favorites("ls");
     handle_favs_command("favs mostrar");
+    handle_favs_command("favs buscar cd");
+    handle_favs_command("favs 1 ejecutar");
+    handle_favs_command("favs 2 ejecutar");
     handle_favs_command("favs borrar");
     handle_favs_command("favs mostrar");
+    handle_favs_command("favs buscar pwd");
+    handle_favs_command("favs buscar dfdgdhbdg");
     return 0;
 }
 
@@ -335,6 +383,9 @@ int main() {
     handle_favs_command("favs mostrar");
     handle_favs_command("favs eliminar 1");
     handle_favs_command("favs mostrar");
+    handle_favs_command("favs borrar");
+    handle_favs_command("favs 1 ejecutar");
+    add_executed_command_to_favorites("pwd");
 */
 
 /*

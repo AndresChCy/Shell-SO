@@ -95,16 +95,28 @@ void pipes(int cantPipes, const char ***args) {
 }
 
 
+
+int pid;
+
 int ejecutar_comandos_internos(char **instructions, int counter){
+
     if(strcmp(instructions[0], "exit") == 0){
+
+        // Liberar la memoria tokens
+        free(instructions);
+        
+        kill(getppid(), SIGKILL); // matar proceso padre e hijo
+        kill(pid, SIGKILL);
+
         exit(0);
 
     } else if (strcmp(instructions[0], "cd") == 0){
         chdir(instructions[1]);
+
+        kill(pid, SIGKILL);
         return 1;
 
-    } 
-    
+    }
 
    /* for(int i = 0; i < counter; i++){
             //printf("%s ", parsed_str[i]);
@@ -119,26 +131,10 @@ int ejecutar_comandos_internos(char **instructions, int counter){
     return 0;
 }
 
-
-int pid;
-
 void ejecutar_comandos_externos(char **parsed_str){
-
-    pid = fork();
-
-    if (pid < 0) { // fork fallo
-        printf("fork fallo\n");
-        exit(1);
-
-    } else if (pid == 0) { 
-       
-        execvp(parsed_str[0], parsed_str);  // ejecuta los comandos
-        printf("No se encontro el comando ingresado.\n");   
-    }
-
-    // esperar que termine de correr el comando
-    if(pid != 0){wait(NULL);}
-
+    execvp(parsed_str[0], parsed_str);  // ejecuta los comandos
+    printf("No se encontro el comando ingresado.\n");   
+    exit(0);
 }
 
 // funcion para manejar señales
@@ -182,17 +178,33 @@ int main(int argc, char *argv[]) {
         }
             
         //identificar commandos internos
-        int handled = 0; // variable para indicar si el comando ya fue manejado internamente 
 
-        handled = ejecutar_comandos_internos(*parsed_str, count);
-        if(!handled){ // ejecutar comandos
-            if(numPipes == 0) ejecutar_comandos_externos(*parsed_str);
-            else pipes(numPipes,(const char***)parsed_str);
+
+        pid = fork();
+        if (pid < 0) { // fork fallo
+            printf("fork fallo\n");
+            exit(1);
+
+        } else if (pid == 0) { 
+
+            int handled = 0; // variable para indicar si el comando ya fue manejado internamente 
+
+            handled = ejecutar_comandos_internos(*parsed_str, count);
+            
+
+            if(!handled){ // ejecutar comandos externos
+
+                if(numPipes == 0) ejecutar_comandos_externos(*parsed_str);
+                else pipes(numPipes,(const char***)parsed_str);
+            }
+            
+        } else {
+            // esperar que termine de correr el comando
+            if(pid != 0){wait(NULL);}
         }
-        
 
         // Liberar la memoria tokens
-        //free(parsed_str);
+        free(parsed_str);
         memset(input, 0, sizeof(input));
 
 

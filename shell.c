@@ -4,7 +4,7 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <signal.h>
-
+#include "favs.h"
 static int numPipes = 0;
 char*** dividir_string(char *input){
 
@@ -98,7 +98,7 @@ void pipes(int cantPipes, const char ***args) {
 
 int pid;
 
-int ejecutar_comandos_internos(char **instructions, int counter){
+int ejecutar_comandos_internos(char **instructions, int counter, char* input){
 
     if(strcmp(instructions[0], "exit") == 0){
 
@@ -110,14 +110,12 @@ int ejecutar_comandos_internos(char **instructions, int counter){
 
         exit(0);
 
-    } else if (strcmp(instructions[0], "cd") == 0){
-        chdir(instructions[1]);
-
-        kill(pid, SIGKILL);
+    } else if(strcmp(instructions[0],"favs")==0){
+        handle_favs_command(input);
+        kill(getpid(),SIGKILL);
         return 1;
-
     }
-
+        
    /* for(int i = 0; i < counter; i++){
             //printf("%s ", parsed_str[i]);
 
@@ -150,16 +148,21 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, sig_handler); // rutina para control C
     char prev_command[MAX_CHAR];
     char input[MAX_CHAR];
+    char inputAux[MAX_CHAR];
     char s[100];
     int count=1; 
 
     system("clear");
 
-    while(1){
+    while(1){   
+        numPipes = 0;
+
         printf("shell:~%s$ ", getcwd(s, 100)); // imprimir direccion de directorio
         //fgets(input, 256, stdin);               // Leer el comando
         //input[strcspn(input, "\n")] = 0;       // Eliminar el salto de linea
         scanf("%[^\n]s", input);
+        
+        strcpy(inputAux,input);
         char ***parsed_str;
         // comprobar si el comando es !!
         if((input[0] == 33) && (input[1] == 33)){
@@ -172,26 +175,45 @@ int main(int argc, char *argv[]) {
         } else {
             strcpy(prev_command, input);
             parsed_str = dividir_string(input); 
+            
             if (parsed_str[0] == NULL) {
                 continue;
             }
         }
             
         //identificar commandos internos
+        int handled = 0; // variable para indicar si el comando ya fue manejado internamente 
+        
+        if(strcmp(*parsed_str[0], "cd") == 0){
+            
+            chdir(parsed_str[0][1]);
+           // free(parsed_str);
+            handled = 1;
+            char ch[1];
+            while(1){
+                ch[0] = fgetc(stdin);
+                if(ch[0] == '\n' || ch[0] == EOF) break;
+            }
+            numPipes = 0;
+           
 
+            for(int i = 0; i < 1000000; i++){};
+            continue;
+            
+        }
+            
 
         pid = fork();
+
         if (pid < 0) { // fork fallo
             printf("fork fallo\n");
             exit(1);
 
-        } else if (pid == 0) { 
+        } else if(pid == 0) { 
 
-            int handled = 0; // variable para indicar si el comando ya fue manejado internamente 
-
-            handled = ejecutar_comandos_internos(*parsed_str, count);
+            handled = ejecutar_comandos_internos(*parsed_str, count,inputAux);
             
-
+            
             if(!handled){ // ejecutar comandos externos
 
                 if(numPipes == 0) ejecutar_comandos_externos(*parsed_str);
@@ -215,7 +237,6 @@ int main(int argc, char *argv[]) {
             ch[0] = fgetc(stdin);
             if(ch[0] == '\n' || ch[0] == EOF) break;
         }
-        numPipes = 0;
     }   
    
     

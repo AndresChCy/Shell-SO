@@ -1,0 +1,1 @@
+void handle_favs_command(const char *input);

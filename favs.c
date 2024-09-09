@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include "favs.h"
 
 #define MAX_CMD_LEN 256
 #define MAX_FAVS 100
@@ -416,6 +417,7 @@ void handle_favs_command(const char *input) {
                                 Pruebas
 ---------------------------------------------------------------------------
 */
+/*
 int main() {
     char input[MAX_CMD_LEN];
 
@@ -445,4 +447,4 @@ int main() {
     }
 
     return 0;
-}
+}*/

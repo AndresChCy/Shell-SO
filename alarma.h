@@ -1,0 +1,1 @@
+void alarma(int segs , char mensaje[]);

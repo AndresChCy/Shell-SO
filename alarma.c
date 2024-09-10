@@ -5,13 +5,9 @@ void alarma(int segs , char mensaje[]){
 	printf("Alarma colocada en %d segundos!\n",segs);
 	sleep(segs);
 	if(mensaje != NULL){
-		printf("%s\n",mensaje);
+		printf("\n%s\n",mensaje);
 	}
 	else{
-		printf("Alarma suena! Ya pasaron %d segundos",segs);
+		printf("\nAlarma suena! Ya pasaron %d segundos\n",segs);
 	}
-}
-int main(){
-	alarma(5,NULL);
-	return 0;
 }

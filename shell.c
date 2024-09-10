@@ -6,7 +6,7 @@
 #include <signal.h>
 #include <errno.h>
 #include "favs.h"
-
+#include "alarma.h"
 #define MAX_CHAR 256
 
 static int numPipes = 0;
@@ -119,7 +119,16 @@ int ejecutar_comandos_internos(char **instructions, int counter, char* input){
         handle_favs_command(input);
         kill(getpid(),SIGKILL);
         return 1;
+    } else if(strcmp(instructions[0],"alarma")==0) {    
+            if(instructions[1] == NULL){
+                printf("Error. No se indicaron segundos.\n");
+            } 
+            else if(instructions[2]!=NULL)alarma(atoi(instructions[1]),instructions[2]);
+            else alarma(atoi(instructions[1]),NULL);
+            kill(getpid(),SIGKILL);
+            return 1 ;  
     }
+
         
    /* for(int i = 0; i < counter; i++){
             //printf("%s ", parsed_str[i]);
@@ -256,8 +265,9 @@ int main(int argc, char *argv[]) {
                 handle_favs_command(inputAux);
                 continue ;
             }  
-        } 
-        pid = fork();
+        }
+        
+        if(handled == 0)pid = fork();
 
         if (pid < 0) { // fork fallo
             printf("fork fallo\n");
@@ -276,7 +286,7 @@ int main(int argc, char *argv[]) {
             //handle_favs_command(strcat("favs agregar ",inputAux));
             // esperar que termine de correr el comando
             if(pid != 0){wait(NULL);}
-        }   
+        }
         // Liberar la memoria tokens
         free_memory(parsed_str, numPipes);
         memset(input, 0, sizeof(input));

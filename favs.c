@@ -2,8 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <ctype.h>
 #include <unistd.h>
+#include <sys/wait.h>
 #include "favs.h"
+#include "shell.h"
 
 #define MAX_CMD_LEN 256
 #define MAX_FAVS 100
@@ -23,6 +26,13 @@ int fav_count = 0;                              // Contador de favoritos
 char removed_cmds[MAX_REMOVED][MAX_CMD_LEN];    // Lista de comandos eliminados
 int removed_count = 0;                          // Contador de comandos eliminados
 char favs_file[MAX_CMD_LEN] = "";               // Ruta del archivo de favoritos (vacío inicialmente)
+extern int numPipes;                            // Declaración de numPipes
+
+// Declaraciones de funciones de shell.c
+char*** dividir_string(char *input);
+void ejecutar_comandos_externos(char **parsed_str);
+void pipes(int cantPipes, const char ***args);
+void free_memory(char ***tokens, int numPipes);
 
 /*
 ---------------------------------------------------------------------------
@@ -116,7 +126,6 @@ void show_favorites() {
 void add_favorite_manual(const char *cmd) {
     for (int i = 0; i < fav_count; ++i) {
         if (strcmp(favorites[i].command, cmd) == 0) {
-            printf("El comando ya está en favoritos.\n");
             return;
         }
     }
@@ -140,16 +149,32 @@ void add_executed_command_to_favorites(const char *cmd) {
     // Verificar si el comando fue previamente eliminado
     for (int i = 0; i < removed_count; ++i) {
         if (strcmp(removed_cmds[i], cmd) == 0) {
-            printf("El comando '%s' fue eliminado previamente y no se agregará automáticamente.\n", cmd);
+            printf("El comando '%s' fue eliminado previamente y no se agregará automáticamente a la lista de favoritos.\n", cmd);
             return;
         }
     }
 
-    // Verificar si el comando es válido (se ejecutó correctamente)
-    if (system(cmd) == 0) {           // Verifica si el comando se ejecuta con éxito
-        add_favorite_manual(cmd);     // Agregar el comando a la lista de favoritos
+    // Verificar si el comando fue ejecutado correctamente
+    // `execvp` y `fork` se usan para intentar ejecutar el comando en el contexto actual
+    pid_t pid = fork();
+    if (pid == 0) {
+        // Proceso hijo
+        execlp(cmd, cmd, (char *)NULL);
+        // Si execlp falla, salimos con código 127
+        exit(127);
+    } else if (pid > 0) {
+        // Proceso padre
+        int status;
+        waitpid(pid, &status, 0);
+
+        // Verificar si el comando se ejecutó correctamente
+        if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+            add_favorite_manual(cmd);  // Agregar el comando a la lista de favoritos
+        } else {
+            printf("El comando '%s' no se ejecutó correctamente y no se agregará a la lista de favoritos.\n", cmd);
+        }
     } else {
-        printf("El comando '%s' no es válido o no se pudo ejecutar.\n", cmd);
+        perror("fork failed");
     }
 }
 
@@ -287,13 +312,40 @@ void execute_favorite_by_number(int num) {
     for (int i = 0; i < fav_count; ++i) {
         if (favorites[i].id == num) {
             printf("Ejecutando: %s\n", favorites[i].command);
-            // ***************************************************
-            // Aquí se llama a la función para ejecutar el comando
-            // ***************************************************
+
+            char ***parsed_str = dividir_string(favorites[i].command);
+            if (numPipes == 0) {
+                pid_t pid = fork();
+                if (pid == 0) {
+                    ejecutar_comandos_externos(*parsed_str);
+                } else {
+                    wait(NULL);  // Esperar a que el proceso hijo termine
+                }
+            } else {
+                pipes(numPipes, (const char ***)parsed_str);
+            }
+
+            free_memory(parsed_str, numPipes);
             return;
         }
     }
     printf("No se encontró un comando con el número %d.\n", num);
+}
+
+/*
+---------------------------------------------------------------------------
+            Recortar espacios al inicio y al final de la cadena
+---------------------------------------------------------------------------
+*/
+void space_killer(const char *str) {
+    if (str == NULL) return;
+
+    // Recortar espacios del final
+    char *end = (char *)(str + strlen(str) - 1);;
+    while (end > str && isspace((unsigned char)*end)) {
+        end--;
+    }
+    *(end + 1) = '\0';  // Añadir terminador nulo
 }
 
 /*
@@ -359,7 +411,6 @@ void show_favs_help() {
     printf("  - Guarda los comandos favoritos actuales en el archivo correspondiente.\n");
 
     printf("\n===========================================================================\n");
-    printf(" Nota: Los parámetros entre paréntesis son opcionales.\n");
     printf("===========================================================================\n");
 }
 
@@ -369,6 +420,9 @@ void show_favs_help() {
 ---------------------------------------------------------------------------
 */
 void handle_favs_command(const char *input) {
+    if(input != NULL) {
+        space_killer(input);
+    }
     if (strncmp(input, "favs crear", 10) == 0) {
         char name[MAX_CMD_LEN] = "";
         char path[MAX_CMD_LEN] = "";

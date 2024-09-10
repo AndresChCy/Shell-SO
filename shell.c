@@ -7,9 +7,10 @@
 #include <errno.h>
 #include "favs.h"
 #include "alarma.h"
+#include "shell.h"
 #define MAX_CHAR 256
 
-static int numPipes = 0;
+int numPipes = 0;
 int pid;
 
 char*** dividir_string(char *input){
@@ -120,26 +121,14 @@ int ejecutar_comandos_internos(char **instructions, int counter, char* input){
         kill(getpid(),SIGKILL);
         return 1;
     } else if(strcmp(instructions[0],"alarma")==0) {    
-            if(instructions[1] == NULL){
-                printf("Error. No se indicaron segundos.\n");
-            } 
-            else if(instructions[2]!=NULL)alarma(atoi(instructions[1]),instructions[2]);
-            else alarma(atoi(instructions[1]),NULL);
-            kill(getpid(),SIGKILL);
-            return 1 ;  
+        if(instructions[1] == NULL){
+            printf("Error. No se indicaron segundos.\n");
+        } 
+        else if(instructions[2]!=NULL)alarma(atoi(instructions[1]),instructions[2]);
+        else alarma(atoi(instructions[1]),NULL);
+        kill(getpid(),SIGKILL);
+        return 1 ;  
     }
-
-        
-   /* for(int i = 0; i < counter; i++){
-            //printf("%s ", parsed_str[i]);
-
-        if (strcmp(instructions[i], "|") == 0){
-            printf("\n pipe inserted\n");
-            //run_pipe(parsed_str[i - 1], parsed_str[i + 1]); 
-            return 1;  
-        }
-    } */
-
     return 0;
 }
 
@@ -191,7 +180,8 @@ int main(int argc, char *argv[]) {
     char input[MAX_CHAR];
     char inputAux[MAX_CHAR];
     char s[100];
-    int count=1; 
+    int count=1;
+    int status;
     
     // Configurar el manejador de señales con sigaction
     struct sigaction sa;
@@ -231,10 +221,7 @@ int main(int argc, char *argv[]) {
                 continue;
             }
         }
-            
-       /* if(strcmp(parsed_str[0][0],"favs")!=0){
-            add_executed_command_to_favorites(inputAux);
-        }*/
+        
         //identificar commandos internos
         int handled = 0; // variable para indicar si el comando ya fue manejado internamente 
         
@@ -244,7 +231,6 @@ int main(int argc, char *argv[]) {
             } else {
                 printf("cd: falta el argumento del directorio\n");
             }
-            handle_favs_command("favs agregar cd");
             handled = 1;
             numPipes = 0;
             continue;
@@ -267,7 +253,7 @@ int main(int argc, char *argv[]) {
             }  
         }
         
-        if(handled == 0)pid = fork();
+        pid = fork();
 
         if (pid < 0) { // fork fallo
             printf("fork fallo\n");
@@ -282,11 +268,16 @@ int main(int argc, char *argv[]) {
                 else pipes(numPipes,(const char***)parsed_str);
             }
             
-        } else {
-            //handle_favs_command(strcat("favs agregar ",inputAux));
-            // esperar que termine de correr el comando
-            if(pid != 0){wait(NULL);}
+            exit(0); // Asegúrate de que el proceso hijo salga correctamente
+        } else { // Proceso padre
+            waitpid(pid, &status, 0); // Esperar a que el proceso hijo termine
+
+            if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+                // Solo agregar a favoritos si el comando se ejecutó con éxito
+                add_executed_command_to_favorites(inputAux);
+            }
         }
+        
         // Liberar la memoria tokens
         free_memory(parsed_str, numPipes);
         memset(input, 0, sizeof(input));

@@ -36,8 +36,14 @@ void free_memory(char ***tokens, int numPipes);
 
 /*
 ---------------------------------------------------------------------------
-                      Función para Crear el Archivo
+                       Crear Archivo de Favoritos
 ---------------------------------------------------------------------------
+Crea un archivo para almacenar comandos favoritos. Tanto el nombre del archivo
+como la ruta son opcionales. Si no se proporciona un nombre o ruta, se utiliza
+'un archivo predeterminado en el directorio actual llamado "favs.txt"'.
+Si solo se proporciona un nombre, se guarda en el directorio actual con ese nombre.
+@param nombre El nombre del archivo (opcional)
+@param ruta La ruta donde se creará el archivo (opcional)
 */
 void create_favs_file(const char *name, const char *path) {
     char full_path[MAX_CMD_LEN];
@@ -78,8 +84,11 @@ void create_favs_file(const char *name, const char *path) {
 
 /*
 ---------------------------------------------------------------------------
-                  Sobrescribir el archivo de favoritos
+                      Actualizar Archivo de Favoritos
 ---------------------------------------------------------------------------
+Actualiza el archivo de favoritos con los comandos actualmente almacenados
+en la lista de favoritos. El archivo será sobrescrito cada vez que se ejecute
+esta función.
 */
 void update_favs_file() {
     if (strlen(favs_file) == 0) {
@@ -101,8 +110,10 @@ void update_favs_file() {
 
 /*
 ---------------------------------------------------------------------------
-                          Mostrar los Favoritos
+                        Mostrar Favoritos
 ---------------------------------------------------------------------------
+Imprime en consola la lista de comandos favoritos actualmente almacenados.
+Si no hay comandos favoritos, se informa al usuario.
 */
 void show_favorites() {
     if (fav_count == 0) {
@@ -120,8 +131,10 @@ void show_favorites() {
 
 /*
 ---------------------------------------------------------------------------
-                Agregar Manualmente un Comando a los Favoritos
+                  Agregar Comando Manualmente a Favoritos
 ---------------------------------------------------------------------------
+Agrega manualmente un comando a la lista de favoritos si no está presente.
+@param comando El comando a agregar a la lista de favoritos
 */
 void add_favorite_manual(const char *cmd) {
     for (int i = 0; i < fav_count; ++i) {
@@ -142,8 +155,11 @@ void add_favorite_manual(const char *cmd) {
 
 /*
 ---------------------------------------------------------------------------
-                Agregar un Comando Ejecutado a los Favoritos
+            Agregar Comando Ejecutado a la Lista de Favoritos
 ---------------------------------------------------------------------------
+Agrega un comando ejecutado correctamente a la lista de favoritos si no
+está en la lista de eliminados y no está ya presente en los favoritos.
+@param comando El comando ejecutado a agregar a favoritos
 */
 void add_executed_command_to_favorites(const char *cmd) {
     // Verificar si el comando fue previamente eliminado
@@ -158,8 +174,12 @@ void add_executed_command_to_favorites(const char *cmd) {
 
 /*
 ---------------------------------------------------------------------------
-                   Eliminar Comando de los Favoritos
+                    Eliminar Comando de Favoritos
 ---------------------------------------------------------------------------
+Elimina un comando de la lista de favoritos y lo agrega a la lista de comandos
+eliminados. El comando eliminado ya no podrá volver a añadirse a favoritos
+hasta que se restaure manualmente.
+@param id El índice del comando a eliminar de la lista de favoritos
 */
 void delete_favorite(int id) {
     for (int i = 0; i < fav_count; ++i) {
@@ -183,8 +203,11 @@ void delete_favorite(int id) {
 
 /*
 ---------------------------------------------------------------------------
-                    Borrar Todos los Comando en Favs
+              Borrar Favoritos con Confirmación del Usuario
 ---------------------------------------------------------------------------
+Elimina todos los comandos favoritos después de confirmar la acción con el
+usuario. Los comandos eliminados no podrán ser restaurados sin cargar un nuevo
+archivo de favoritos.
 */
 void clear_favorites_with_confirmation() {
     char confirmation;
@@ -201,8 +224,14 @@ void clear_favorites_with_confirmation() {
 
 /*
 ---------------------------------------------------------------------------
-                    Cargar Comandos desde el Archivo
+                        Cargar Archivo de Favoritos
 ---------------------------------------------------------------------------
+Carga los comandos favoritos desde un archivo. Si el archivo contiene comandos
+que no están en la lista de eliminados, se agregan a los favoritos.
+Si no se proporciona nombre ni ruta, se utiliza el archivo "favs.txt" en
+el directorio actual.
+@param nombre El nombre del archivo a cargar (opcional)
+@param ruta La ruta del archivo a cargar (opcional)
 */
 void load_favs_file(const char *name, const char *path) {
     char full_path[MAX_CMD_LEN];
@@ -267,6 +296,10 @@ void load_favs_file(const char *name, const char *path) {
 ---------------------------------------------------------------------------
                         Búsqueda por SubString
 ---------------------------------------------------------------------------
+Busca comandos favoritos que contengan una subcadena dada. Si encuentra
+alguna coincidencia, muestra los comandos en la consola, junto con su
+número asociado. Si no encuentra coincidencias, notifica al usuario.
+@param substring La subcadena que se buscará dentro de los comandos favoritos
 */
 void search_favorites_by_substring(const char *substring) {
     int found = 0;
@@ -285,6 +318,9 @@ void search_favorites_by_substring(const char *substring) {
 ---------------------------------------------------------------------------
                         Ejecutar Comando Favorito
 ---------------------------------------------------------------------------
+Busca un comando en la lista de favoritos por su número asociado y lo ejecuta.
+Si el número es válido, el comando se ejecuta en un proceso hijo.
+@param num El número asociado al comando favorito que se desea ejecutar
 */
 void execute_favorite_by_number(int num) {
     for (int i = 0; i < fav_count; ++i) {
@@ -328,8 +364,11 @@ void execute_favorite_by_number(int num) {
 
 /*
 ---------------------------------------------------------------------------
-            Recortar espacios al inicio y al final de la cadena
+                Recortar espacios al final de la cadena
 ---------------------------------------------------------------------------
+Elimina los espacios en blanco al final de una cadena dada.
+Es útil para limpiar entradas del usuario antes de procesarlas.
+@param str La cadena que se va a procesar para eliminar espacios
 */
 void space_killer(const char *str) {
     if (str == NULL) return;
@@ -346,6 +385,8 @@ void space_killer(const char *str) {
 ---------------------------------------------------------------------------
                          Ayuda de Comandos favs
 ---------------------------------------------------------------------------
+Muestra una lista de todos los comandos disponibles relacionados con la
+gestión de favoritos y una breve descripción de cada uno.
 */
 void show_favs_help() {
     printf("\n===========================================================================\n");
@@ -412,6 +453,11 @@ void show_favs_help() {
 ---------------------------------------------------------------------------
                         Manejo de Comandos favs
 ---------------------------------------------------------------------------
+Procesa los comandos 'favs' dados por el usuario. Dependiendo del comando
+específico, realiza tareas como agregar un comando favorito, eliminarlo,
+buscarlo, ejecutarlo, o mostrar la lista de favoritos. También maneja la
+creación, carga y guardado del archivo de favoritos.
+@param input El comando completo que introduce el usuario para ser procesado
 */
 void handle_favs_command(const char *input) {
     if(input != NULL) {

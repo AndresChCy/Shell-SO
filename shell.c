@@ -13,6 +13,11 @@
 int numPipes = 0;
 int pid;
 
+/*
+ * Función para dividir una cadena en tokens separados por espacios y pipes.
+ * input: Cadena de entrada a dividir.
+ * Retorna un array tridimensional de cadenas.
+ */
 char*** dividir_string(char *input){
     char ***tokens = malloc(20 * sizeof(char**)); // alocar espacio para 10 punteros
     char *token;
@@ -103,7 +108,13 @@ void pipes(int cantPipes, const char ***args) {
     }
 }
 
-
+/*
+ * Función para ejecutar comandos internos.
+ * instructions: Array de strings con el comando a ejecutar.
+ * counter: Contador de comandos.
+ * input: Cadena de entrada original.
+ * Retorna 1 si el comando fue manejado internamente, 0 en caso contrario.
+ */
 int ejecutar_comandos_internos(char **instructions, char* input){
 
     if(strcmp(instructions[0],"favs")==0){
@@ -130,13 +141,20 @@ int ejecutar_comandos_internos(char **instructions, char* input){
     return 0;
 }
 
+/*
+ * Función para ejecutar comandos externos.
+ * parsed_str: Array de strings con el comando a ejecutar.
+ */
 void ejecutar_comandos_externos(char **parsed_str){
     execvp(parsed_str[0], parsed_str);  // ejecuta los comandos
     printf("No se encontro el comando ingresado.\n");   
     exit(1);
 }
 
-// funcion para manejar señales
+/*
+ * Manejador de señales para SIGINT.
+ * sig: Número de la señal recibida.
+ */
 void sig_handler(int sig){
     if(sig == SIGINT){
         printf("\nSeñal SIGINT recibida. Use 'exit' para salir.\n");
@@ -144,6 +162,11 @@ void sig_handler(int sig){
     }
 }
 
+/*
+ * Función para liberar la memoria usada por los tokens.
+ * tokens: Array tridimensional de tokens.
+ * numPipes: Cantidad de pipes en el comando.
+ */
 void free_memory(char ***tokens, int numPipes) {
     for (int i = 0; i <= numPipes; i++) {
         free(tokens[i]);  // Liberar cada array de tokens
@@ -151,7 +174,12 @@ void free_memory(char ***tokens, int numPipes) {
     free(tokens);  // Liberar el array principal
 }
 
-// Función mejorada para manejar fgets interrumpido por señales
+/*
+ * Función para manejar fgets interrumpido por señales.
+ * buffer: Buffer para almacenar la cadena leída.
+ * max_char: Tamaño máximo del buffer.
+ * Retorna 1 si la lectura fue exitosa, 0 en caso contrario.
+ */
 int safe_fgets(char *buffer, int max_char) {
     while (1) {
         if (fgets(buffer, max_char, stdin) == NULL) {

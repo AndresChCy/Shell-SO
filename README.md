@@ -1,10 +1,11 @@
-# Shell-SO
+![imagen](https://github.com/user-attachments/assets/4dce8dcd-2890-47da-a9c4-8072cca22da6)# Shell-SO
 
 Este es un programa que asimila las funciones de una terminal de Linux. La shell reconoce todos los comandos externos que reconoceria la terminal original. 
 
-Se compila usando el comando "gcc shell.c favs.c alarma.c".
+Se compila usando el comando "gcc shell.c favs.c alarma.c". (Nota: se debe tener favs.h y alarma.h en el directorio)
 
 ---
+IMPORTANTE: Para funcionamiento correcto de pipes se debe separar por espacios de los comandos.
 
 ### Comandos internos: 
 
@@ -20,7 +21,7 @@ Se compila usando el comando "gcc shell.c favs.c alarma.c".
 
 ### Comandos personalizados: 
 
-__favs__: permite mantener los comandos favoritos en forma persistente, guardados en un archivo.
+__favs__: permite mantener los comandos favoritos en forma persistente, guardados en un archivo.(En shell se puede usar favs help para instrucciones de uso)
 
   __favs crear ruta/nombre.txt:__           
                                           Crea archivo donde se almacenan los comandos     
@@ -50,6 +51,7 @@ __favs__: permite mantener los comandos favoritos en forma persistente, guardado
   __favs cargar:__                             
                                           Lee comandos de archivo de favoritos, los mantiene en memoria y los despliega en 
                                           pantalla.
+                                   
                                           
 
 
@@ -59,7 +61,7 @@ __favs__: permite mantener los comandos favoritos en forma persistente, guardado
 __recordatorio__: Permite definir un recordatorio despues de cierta cantidad de tiempo.
 
 __set recordatorio [SEGUNDOS] [MENSAJE]:__   
-                                          Esto desplegara el mensaje ingresado en la shell al haber pasado 10 segundos.
+                                          Esto desplegara el mensaje ingresado en la shell al haber pasado los segundos. Sino hay mensaje se lanzara uno predeterminado
 
 
 

@@ -205,6 +205,7 @@ int main(int argc, char *argv[]) {
         
         strcpy(inputAux,input);
         char ***parsed_str;
+
         // comprobar si el comando es !!
         if((input[0] == 33) && (input[1] == 33)){
 
@@ -222,6 +223,9 @@ int main(int argc, char *argv[]) {
             }
         }
             
+       /* if(strcmp(parsed_str[0][0],"favs")!=0){
+            add_executed_command_to_favorites(inputAux);
+        }*/
         //identificar commandos internos
         int handled = 0; // variable para indicar si el comando ya fue manejado internamente 
         
@@ -231,11 +235,28 @@ int main(int argc, char *argv[]) {
             } else {
                 printf("cd: falta el argumento del directorio\n");
             }
+            handle_favs_command("favs agregar cd");
             handled = 1;
             numPipes = 0;
             continue;
         } 
-
+         else if(parsed_str[0]!= NULL && parsed_str[0][0] != NULL && strcmp(parsed_str[0][0],"favs")==0 ){
+            if(strcmp(parsed_str[0][1],"agregar")==0){
+                handle_favs_command(inputAux);
+                continue ;
+            }
+            else if(strcmp(parsed_str[0][1],"cargar")==0){ 
+                handle_favs_command(inputAux);
+                continue ;}
+            else if(strcmp(parsed_str[0][1],"eliminar")==0){
+                handle_favs_command(inputAux);
+                continue ;
+            }
+            else if(strcmp(parsed_str[0][1],"borrar")==0) {
+                handle_favs_command(inputAux);
+                continue ;
+            }  
+        } 
         pid = fork();
 
         if (pid < 0) { // fork fallo
@@ -252,18 +273,18 @@ int main(int argc, char *argv[]) {
             }
             
         } else {
+            //handle_favs_command(strcat("favs agregar ",inputAux));
             // esperar que termine de correr el comando
             if(pid != 0){wait(NULL);}
-        }
-
+        }   
         // Liberar la memoria tokens
         free_memory(parsed_str, numPipes);
         memset(input, 0, sizeof(input));
 
-
         // limpiar buffer de entrada
         
         fflush(stdin);
+
     }
     
     return 0;

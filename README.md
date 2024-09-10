@@ -2,7 +2,7 @@
 
 Este es un programa que asimila las funciones de una terminal de Linux. La shell reconoce todos los comandos externos que reconoceria la terminal original. 
 
-Se compila usando el comando "gcc shell.c favs.c alarma.c". (Nota: se debe tener favs.h y alarma.h en el directorio)
+Se compila usando el comando "gcc shell.c favs.c alarma.c". (Nota: se debe tener favs.h, alarma.h y shell.h en el directorio)
 
 ---
 IMPORTANTE: Para funcionamiento correcto de pipes se debe separar por espacios de los comandos.

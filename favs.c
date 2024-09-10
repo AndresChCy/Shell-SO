@@ -153,29 +153,7 @@ void add_executed_command_to_favorites(const char *cmd) {
             return;
         }
     }
-
-    // Verificar si el comando fue ejecutado correctamente
-    // `execvp` y `fork` se usan para intentar ejecutar el comando en el contexto actual
-    pid_t pid = fork();
-    if (pid == 0) {
-        // Proceso hijo
-        execlp(cmd, cmd, (char *)NULL);
-        // Si execlp falla, salimos con código 127
-        exit(127);
-    } else if (pid > 0) {
-        // Proceso padre
-        int status;
-        waitpid(pid, &status, 0);
-
-        // Verificar si el comando se ejecutó correctamente
-        if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-            add_favorite_manual(cmd);  // Agregar el comando a la lista de favoritos
-        } else {
-            printf("El comando '%s' no se ejecutó correctamente y no se agregará a la lista de favoritos.\n", cmd);
-        }
-    } else {
-        perror("fork failed");
-    }
+    add_favorite_manual(cmd);
 }
 
 /*
@@ -312,21 +290,37 @@ void execute_favorite_by_number(int num) {
     for (int i = 0; i < fav_count; ++i) {
         if (favorites[i].id == num) {
             printf("Ejecutando: %s\n", favorites[i].command);
-
-            char ***parsed_str = dividir_string(favorites[i].command);
-            if (numPipes == 0) {
-                pid_t pid = fork();
-                if (pid == 0) {
+            char inputAux[256] = "";
+            strcpy(inputAux,favorites[i].command);
+            char ***parsed_str = dividir_string(inputAux);
+        
+        if(parsed_str[0] != NULL && parsed_str[0][0] != NULL && strcmp(parsed_str[0][0], "cd") == 0){
+            if (parsed_str[0][1] != NULL) {
+                chdir(parsed_str[0][1]);
+                numPipes = 0;
+                return;
+            } else {
+                printf("cd: falta el argumento del directorio\n");
+            }
+           
+        } 
+       
+            if (fork()==0) {
+                 ejecutar_comandos_internos(*parsed_str,"");
+                if (numPipes==0) {
                     ejecutar_comandos_externos(*parsed_str);
                 } else {
-                    wait(NULL);  // Esperar a que el proceso hijo termine
+                    pipes(numPipes, (const char ***)parsed_str);
                 }
-            } else {
-                pipes(numPipes, (const char ***)parsed_str);
+                exit(1);
             }
-
+             
+            wait(NULL);  // Esperar a que el proceso hijo termine
             free_memory(parsed_str, numPipes);
+            numPipes = 0;
+               
             return;
+            
         }
     }
     printf("No se encontró un comando con el número %d.\n", num);
@@ -467,39 +461,3 @@ void handle_favs_command(const char *input) {
     }
 }
 
-/*
----------------------------------------------------------------------------
-                                Pruebas
----------------------------------------------------------------------------
-*/
-/*
-int main() {
-    char input[MAX_CMD_LEN];
-
-    printf("\n---------------------------------------------------------------------------\n");
-    printf("                         Pruebas de Comandos favs\n");
-    printf("---------------------------------------------------------------------------\n");
-    printf("Ingrese un comando (o 'exit' para salir):\n");
-
-    while (1) {
-        printf("> ");
-        // Lee la entrada del usuario (usamos fgets para capturar la línea completa)
-        if (fgets(input, sizeof(input), stdin) == NULL) {
-            break; // Si se alcanza el final de la entrada, salir
-        }
-
-        // Eliminar el salto de línea al final
-        input[strcspn(input, "\n")] = 0;
-
-        // Verificar si se quiere salir del programa
-        if (strcmp(input, "exit") == 0) {
-            printf("Saliendo...\n");
-            break;
-        }
-
-        // Llamar a la función que maneja los comandos
-        handle_favs_command(input);
-    }
-
-    return 0;
-}*/

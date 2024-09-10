@@ -104,28 +104,26 @@ void pipes(int cantPipes, const char ***args) {
 }
 
 
-int ejecutar_comandos_internos(char **instructions, int counter, char* input){
+int ejecutar_comandos_internos(char **instructions, char* input){
 
-    if(strcmp(instructions[0], "exit") == 0){
-
-        // Liberar la memoria tokens
-        free(instructions);
-        
-        kill(getppid(), SIGKILL); // matar proceso padre e hijo
-        kill(pid, SIGKILL);
-
-        exit(0);
-
-    } else if(strcmp(instructions[0],"favs")==0){
+    if(strcmp(instructions[0],"favs")==0){
         handle_favs_command(input);
         kill(getpid(),SIGKILL);
         return 1;
     } else if(strcmp(instructions[0],"alarma")==0) {    
         if(instructions[1] == NULL){
             printf("Error. No se indicaron segundos.\n");
+            exit(1);
         } 
-        else if(instructions[2]!=NULL)alarma(atoi(instructions[1]),instructions[2]);
-        else alarma(atoi(instructions[1]),NULL);
+        else if(instructions[2]!=NULL){
+            alarma(atoi(instructions[1]),instructions[2]);
+            exit(0);
+        }
+        else {
+            alarma(atoi(instructions[1]),NULL);
+            free_memory(&instructions, numPipes);
+            exit(0);
+        }
         kill(getpid(),SIGKILL);
         return 1 ;  
     }
@@ -135,7 +133,7 @@ int ejecutar_comandos_internos(char **instructions, int counter, char* input){
 void ejecutar_comandos_externos(char **parsed_str){
     execvp(parsed_str[0], parsed_str);  // ejecuta los comandos
     printf("No se encontro el comando ingresado.\n");   
-    exit(0);
+    exit(1);
 }
 
 // funcion para manejar señales
@@ -228,6 +226,7 @@ int main(int argc, char *argv[]) {
         if(parsed_str[0] != NULL && parsed_str[0][0] != NULL && strcmp(parsed_str[0][0], "cd") == 0){
             if (parsed_str[0][1] != NULL) {
                 chdir(parsed_str[0][1]);
+                add_executed_command_to_favorites(inputAux);
             } else {
                 printf("cd: falta el argumento del directorio\n");
             }
@@ -235,6 +234,10 @@ int main(int argc, char *argv[]) {
             numPipes = 0;
             continue;
         } 
+        else if(parsed_str[0]!= NULL & parsed_str[0][0] != NULL && strcmp(parsed_str[0][0],"exit")==0){
+            free_memory(parsed_str,numPipes);
+            exit(0);
+        }
          else if(parsed_str[0]!= NULL && parsed_str[0][0] != NULL && strcmp(parsed_str[0][0],"favs")==0 ){
             if(strcmp(parsed_str[0][1],"agregar")==0){
                 handle_favs_command(inputAux);
@@ -250,6 +253,10 @@ int main(int argc, char *argv[]) {
             else if(strcmp(parsed_str[0][1],"borrar")==0) {
                 handle_favs_command(inputAux);
                 continue ;
+            }
+            else if(parsed_str[0][2] != NULL &&strcmp(parsed_str[0][2],"ejecutar")==0){
+                handle_favs_command(inputAux);
+                continue ;
             }  
         }
         
@@ -260,7 +267,7 @@ int main(int argc, char *argv[]) {
             exit(1);
 
         } else if(pid == 0) { 
-            handled = ejecutar_comandos_internos(*parsed_str, count,inputAux);
+            handled = ejecutar_comandos_internos(*parsed_str,inputAux);
             
             if(!handled){ // ejecutar comandos externos
 

@@ -4,19 +4,27 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <errno.h>
 #include "favs.h"
-static int numPipes = 0;
-char*** dividir_string(char *input){
 
-    char ***tokens = malloc( 20*sizeof(char**)); // alocar espacio para 10 punteros
+#define MAX_CHAR 256
+
+static int numPipes = 0;
+int pid;
+
+char*** dividir_string(char *input){
+    char ***tokens = malloc(20 * sizeof(char**)); // alocar espacio para 10 punteros
     char *token;
     int index = 0;
+    
     for (int i = 0; i < 20; i++){
-        tokens[i] = malloc(sizeof (char*) * 20);
+        tokens[i] = malloc(20 * sizeof(char**));
         // Cada elemento apunta a NULL inicialmente 
-        //for (int j = 0; j < 20; j++)
-          //  tokens[i][j] = NULL;
+        for (int j = 0; j < 20; j++) {
+            tokens[i][j] = NULL;
+        }
     }
+    
     token = strtok(input, " ");
     while (token != NULL ){
         if(strcmp(token,"|") == 0){
@@ -95,9 +103,6 @@ void pipes(int cantPipes, const char ***args) {
 }
 
 
-
-int pid;
-
 int ejecutar_comandos_internos(char **instructions, int counter, char* input){
 
     if(strcmp(instructions[0], "exit") == 0){
@@ -137,30 +142,66 @@ void ejecutar_comandos_externos(char **parsed_str){
 
 // funcion para manejar señales
 void sig_handler(int sig){
-    if(sig = SIGINT){
-        kill(pid, SIGKILL);
+    if(sig == SIGINT){
+        printf("\nSeñal SIGINT recibida. Use 'exit' para salir.\n");
+        fflush(stdout);
     }
 }
 
+void free_memory(char ***tokens, int numPipes) {
+    for (int i = 0; i <= numPipes; i++) {
+        free(tokens[i]);  // Liberar cada array de tokens
+    }
+    free(tokens);  // Liberar el array principal
+}
+
+// Función mejorada para manejar fgets interrumpido por señales
+int safe_fgets(char *buffer, int max_char) {
+    while (1) {
+        if (fgets(buffer, max_char, stdin) == NULL) {
+            if (feof(stdin)) {
+                clearerr(stdin);
+                continue;
+            } else if (errno == EINTR) {
+                // Interrupción por señal, reiniciar fgets
+                continue;
+            } else {
+                perror("Error leyendo la entrada");
+                return 0;
+            }
+        }
+        break;
+    }
+    return 1;
+}
+
+
 int main(int argc, char *argv[]) {
 
-    #define MAX_CHAR 256
-    signal(SIGINT, sig_handler); // rutina para control C
     char prev_command[MAX_CHAR];
     char input[MAX_CHAR];
     char inputAux[MAX_CHAR];
     char s[100];
     int count=1; 
+    
+    // Configurar el manejador de señales con sigaction
+    struct sigaction sa;
+    sa.sa_handler = sig_handler;
+    sa.sa_flags = SA_RESTART; // Reinicia llamadas interrumpidas
+    sigaction(SIGINT, &sa, NULL);
 
     system("clear");
 
     while(1){   
         numPipes = 0;
 
-        printf("shell:~%s$ ", getcwd(s, 100)); // imprimir direccion de directorio
-        //fgets(input, 256, stdin);               // Leer el comando
-        //input[strcspn(input, "\n")] = 0;       // Eliminar el salto de linea
-        scanf("%[^\n]s", input);
+        printf("shell:~%s$ ", getcwd(s, 100));    // imprimir direccion de directorio
+        
+        if (!safe_fgets(input, MAX_CHAR)) {
+            continue;
+        }
+        
+        input[strcspn(input, "\n")] = 0;          // Eliminar el salto de linea
         
         strcpy(inputAux,input);
         char ***parsed_str;
@@ -184,24 +225,16 @@ int main(int argc, char *argv[]) {
         //identificar commandos internos
         int handled = 0; // variable para indicar si el comando ya fue manejado internamente 
         
-        if(strcmp(*parsed_str[0], "cd") == 0){
-            
-            chdir(parsed_str[0][1]);
-           // free(parsed_str);
-            handled = 1;
-            char ch[1];
-            while(1){
-                ch[0] = fgetc(stdin);
-                if(ch[0] == '\n' || ch[0] == EOF) break;
+        if(parsed_str[0] != NULL && parsed_str[0][0] != NULL && strcmp(parsed_str[0][0], "cd") == 0){
+            if (parsed_str[0][1] != NULL) {
+                chdir(parsed_str[0][1]);
+            } else {
+                printf("cd: falta el argumento del directorio\n");
             }
+            handled = 1;
             numPipes = 0;
-           
-
-            for(int i = 0; i < 1000000; i++){};
             continue;
-            
-        }
-            
+        } 
 
         pid = fork();
 
@@ -210,9 +243,7 @@ int main(int argc, char *argv[]) {
             exit(1);
 
         } else if(pid == 0) { 
-
             handled = ejecutar_comandos_internos(*parsed_str, count,inputAux);
-            
             
             if(!handled){ // ejecutar comandos externos
 
@@ -226,19 +257,14 @@ int main(int argc, char *argv[]) {
         }
 
         // Liberar la memoria tokens
-        free(parsed_str);
+        free_memory(parsed_str, numPipes);
         memset(input, 0, sizeof(input));
 
 
         // limpiar buffer de entrada
         
-        char ch[1];
-        while(1){
-            ch[0] = fgetc(stdin);
-            if(ch[0] == '\n' || ch[0] == EOF) break;
-        }
-    }   
-   
+        fflush(stdin);
+    }
     
     return 0;
 }

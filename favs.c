@@ -168,6 +168,7 @@ void delete_favorite(int id) {
             // Eliminar el comando de favoritos
             for (int j = i; j < fav_count - 1; ++j) {
                 favorites[j] = favorites[j + 1];
+                favorites[j].id--;
             }
             fav_count--;
             printf("Comando eliminado de favoritos: %d\n", id);
